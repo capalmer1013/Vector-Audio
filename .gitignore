@@ -2,3 +2,5 @@
 .idea/encodings.xml
 *.xml
 .idea/Vector-Audio.iml
+*.pyc
+*.wav

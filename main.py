@@ -4,9 +4,10 @@ import convertAudio
 import playAudio
 
 
-filename = input('input a file to convert or play: ')
+filename = raw_input('input a file to convert or play: ')
 
-if filename[-3:-1] == 'wav':
+print filename
+if filename[-3:len(filename)] == 'wav':
     waveFile = wave.open(filename, 'r')
     convertAudio.convertWaveFile(waveFile)
 
