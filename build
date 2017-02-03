@@ -1,0 +1,1 @@
+g++ main.cpp libportaudio.a -lrt -lm -lasound -pthread -o debug
