@@ -1,0 +1,5 @@
+digraph "classes_No_Name" {
+charset="utf-8"
+rankdir=BT
+"0" [label="{VectorReader|\l|openFile()\l}", shape="record"];
+}
