@@ -17,3 +17,12 @@ Basing a lot of the design off of (libFLAC)[https://xiph.org/flac/api/index.html
 
 - **Player:**
     - official player for .vac files
+    
+## Format:
+- 3 byte string "VAC"
+- INITIAL metadata block
+- 0 or more metadata blocks
+- 1 or more audio frames
+
+## Version:
+**0.1.0**
