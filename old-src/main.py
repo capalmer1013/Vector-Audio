@@ -1,8 +1,7 @@
-import audioop
 import wave
+
 import convertAudio
 import playAudio
-
 
 filename = raw_input('input a file to convert or play: ')
 
