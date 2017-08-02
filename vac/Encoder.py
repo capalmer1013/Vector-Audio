@@ -15,17 +15,33 @@ class File(object):
         self.fsm = State()
 
     def encode(self, infilename=None):
-        if not (self.infile and infilename):
+        if infilename: 
+            self.infile = infilename
+
+        if not self.infile:
             logging.error("No input file specified")
             raise Exception("No Input file")
+
+        left, right = getSignedIntsFromWav(self.infile)
+        listOfSamples = [x for t in zip(left, right) for x in t]
+        self.fsm.listOfSignedInts(listOfSamples)
 
         return self
 
     def writeOut(self, outfilename=None):
+        if not outfilename:
+            raise Exception("no filename given")
+
+        with open(outfilename, 'w') as f:
+            f.write(self.fsm.bytesOut)
+
         return self
 
 
 class Stream(object):
+    """
+    this currently isn't used for anything
+    """
     pass
 
 
@@ -74,6 +90,8 @@ class State(object):
         for sample in listOfInts:
             self.execute_state(sample)
 
+        self.end(0)
+
     def execute_state(self, next_input):
         self.states[self.currentState](next_input)
 
@@ -105,7 +123,8 @@ class State(object):
         self.listOfSamples = []
 
     def end(self, next_input):
-        pass
+        self.bytesOut += self.find_best_fit(self.listOfSamples)
+        self.listOfSamples = []
 
     # states end here ----------------------------------------------------------
 
@@ -114,7 +133,7 @@ class State(object):
         current test:
             just returns 2byte signed ints
         """
-        return ''.join([struct.pack('h', x) for x in listOfSamples])
+        return "FRAME" + ''.join([struct.pack('h', x) for x in listOfSamples])
 
 
 def writeWavFromSignedInts(outFilename, tupleOfInts):
@@ -137,10 +156,7 @@ def writeWavFromSignedInts(outFilename, tupleOfInts):
     else:
         raise Exception("more than 2 channels not supported")
 
-        
 
-
-    
 def getSignedIntsFromWav(infileName):
     """
     given: a .wav filename
@@ -179,9 +195,8 @@ if __name__ == "__main__":
     # -d debug
 
     # this is a terrible cli
-    writeWavFromSignedInts('testOut.wav', getSignedIntsFromWav('test.wav'))
     if len(sys.argv) > 1:
-        File(sys.argv[1]).encode().writeOut()
+        File(sys.argv[1]).encode().writeOut("testOut.vac")
 
     else:
         logging.error("missing filename argument.")
