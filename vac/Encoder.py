@@ -6,6 +6,7 @@ VAC Encoder Module
 import logging
 import wave
 import sys
+import struct
 
 
 class File(object):
@@ -43,8 +44,10 @@ class State(object):
         self.listOfSamples = []
 
         # default metadata
+        self.nchannels = 2      # number of channels
         self.sampleSize = 2     # bytes per sample
         self.frame_size = 4096  # samples per frame
+        self.sample_freq = 44100 # samplerate
 
         # state map
         self.states = {
@@ -60,27 +63,38 @@ class State(object):
         pass
 
     def listOfSignedInts(self, listOfInts):
+        """
+        given a list of samples as signed ints
+        generate a binary file to output
+        """
         self.setMetadata()
+        self.file_type(0)
+        self.init_metadata(0)
         self.currentState = self.AUDIO_FRAMES
         for sample in listOfInts:
             self.execute_state(sample)
 
     def execute_state(self, next_input):
         self.states[self.currentState](next_input)
-        pass
 
     # States begin here ----------------------------------------------------------
 
     def file_type(self, next_input):
         self.bytesOut += "VAC"
+        return self.INIT_METADATA
 
     def init_metadata(self, next_input):
         # add important metadata
-        pass
+        self.bytesOut += "ch:" + str(self.nchannels) +";"
+        self.bytesOut += "byteDepth:" + str(self.sampleSize) + ";"
+        self.bytesOut += "frameSize:" + str(self.frame_size) + ";"
+        self.bytesOut += "sampleFreq:" + str(self.sample_freq) +";"
+        return self.METADATA
 
     def metadata(self, next_input):
         # add optional metadata
-        pass
+        self.bytesOut += "END_META"
+        return self.AUDIO_FRAMES
 
     def audio_frame(self, next_input):
         if len(self.listOfSamples) < self.frame_size:
@@ -96,8 +110,65 @@ class State(object):
     # states end here ----------------------------------------------------------
 
     def find_best_fit(self, listOfSamples):
-        pass
+        """
+        current test:
+            just returns 2byte signed ints
+        """
+        return ''.join([struct.pack('h', x) for x in listOfSamples])
 
+
+def writeWavFromSignedInts(outFilename, tupleOfInts):
+    """
+    if the len of the tuple is 1 then mono
+    if 2 then stereo
+    """
+    outfile = wave.open(outFilename, "w")
+    outfile.setnchannels(len(tupleOfInts))
+    outfile.setsampwidth(2)  # lazy
+    outfile.setframerate(44100)
+    if len(tupleOfInts) == 1:
+        # mono
+        pass
+    elif len(tupleOfInts) == 2:
+        # interleaved stereo
+        for i in range(len(tupleOfInts[0])):
+            frame = struct.pack('h', tupleOfInts[0][i]) + struct.pack('h', tupleOfInts[1][i])
+            outfile.writeframes(frame)
+    else:
+        raise Exception("more than 2 channels not supported")
+
+        
+
+
+    
+def getSignedIntsFromWav(infileName):
+    """
+    given: a .wav filename
+    return: a tuple of lists of ints
+    """
+    tmp = wave.open(infileName)
+    nChannels = tmp.getnchannels()
+    sampleWidth = tmp.getsampwidth()
+    channels = None
+
+    if nChannels == 1:
+        channels = ([],)
+        for _ in range(tmp.getnframes()):
+            currentFrame = tmp.readframes(1)
+            channels[0].append(struct.unpack('h', currentFrame[:sampleWidth])[0])
+
+    elif nChannels == 2:
+        # i[0] == left, i[1] == right
+        channels = ([], [])
+        for _ in range(tmp.getnframes()):
+            currentFrame = tmp.readframes(1)
+            channels[0].append(struct.unpack('h', currentFrame[:sampleWidth])[0])
+            channels[1].append(struct.unpack('h', currentFrame[sampleWidth:])[0])
+
+    else:
+        raise Exception("More than 2 channels not supported")
+
+    return channels
 
 if __name__ == "__main__":
     # at some point add a legitimate cli here
@@ -108,10 +179,9 @@ if __name__ == "__main__":
     # -d debug
 
     # this is a terrible cli
+    writeWavFromSignedInts('testOut.wav', getSignedIntsFromWav('test.wav'))
     if len(sys.argv) > 1:
         File(sys.argv[1]).encode().writeOut()
 
     else:
         logging.error("missing filename argument.")
-
-    pass

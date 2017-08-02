@@ -1,7 +1,6 @@
 *.name
-.idea/encodings.xml
+.idea/*
 *.xml
-.idea/Vector-Audio.iml
 *.pyc
 *.wav
 !vac/test.wav
