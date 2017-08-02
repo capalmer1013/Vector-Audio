@@ -39,8 +39,12 @@ class State(object):
         self.currentState = self.FILETYPE
         self.bytesOut = ""
 
+        # work in progress properties
+        self.listOfSamples = []
+
         # default metadata
-        self.frame_size = 4096
+        self.sampleSize = 2     # bytes per sample
+        self.frame_size = 4096  # samples per frame
 
         # state map
         self.states = {
@@ -65,21 +69,35 @@ class State(object):
         self.states[self.currentState](next_input)
         pass
 
+    # States begin here ----------------------------------------------------------
+
     def file_type(self, next_input):
         self.bytesOut += "VAC"
 
     def init_metadata(self, next_input):
-
+        # add important metadata
         pass
 
     def metadata(self, next_input):
+        # add optional metadata
         pass
 
     def audio_frame(self, next_input):
-        pass
+        if len(self.listOfSamples) < self.frame_size:
+            self.listOfSamples.append(next_input)
+            return
+
+        self.bytesOut += self.find_best_fit(self.listOfSamples)
+        self.listOfSamples = []
 
     def end(self, next_input):
         pass
+
+    # states end here ----------------------------------------------------------
+
+    def find_best_fit(self, listOfSamples):
+        pass
+
 
 if __name__ == "__main__":
     # at some point add a legitimate cli here
