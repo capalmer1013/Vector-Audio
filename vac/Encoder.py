@@ -63,7 +63,8 @@ class State(object):
         # default metadata
         self.nchannels = 2      # number of channels
         self.sampleSize = 2     # bytes per sample
-        self.frame_size = 4096  # samples per frame
+        #self.frame_size = 4096  # samples per frame
+        self.frame_size = 64000
         self.sample_freq = 44100 # samplerate
 
         # state map
@@ -142,8 +143,21 @@ class State(object):
             - 2 bytes unsigned int x (sample index) this makes the max framesize 65k
             - 2 bytes signed int y (sample amplitude)
         """
+        print "-----------------------"
+        d = {each: listOfSamples.count(each) for each in set(listOfSamples)}
+        for _ in range(10):
+            key, value = max(d.iteritems(), key=operator.itemgetter(1))
+            del d[key]
+            print key, ":", value
+
+        print "unique samples", len(set(listOfSamples)), "/", len(listOfSamples)
+        print float(len(set(listOfSamples)))/ len(listOfSamples)
+        # add some kind of lookup table for frames that have very few unique samples
+        # maybe 1 byte for the value and 1 byte for the count of how many
+
         def findPOIs(listOfSamples):
             # listOfSamples: int -> [(x: int, y: int)]
+            # todo this needs a good ole refactoring
             lastSample = None
             POIlist = []
             x = -1
@@ -182,8 +196,6 @@ class State(object):
                     value = listOfSamples[index]
 
                 except Exception as e:
-                    print "listOfSamples:", listOfSamples
-                    print "poi", poi
                     raise e
 
                 minmaxList.append((index+poi[0], value))
@@ -205,12 +217,25 @@ class State(object):
             POIlist.extend(minmaxList)
 
             # todo figure out how to find inflection points
+            POIlist = list(set(POIlist))
             return POIlist
 
 
-        
+        # seems like theres a problem when there are a lot of repeated samples. like a lot of 0's
         poiList = findPOIs(listOfSamples)
-        return "FRAME" + ''.join([struct.pack('h', x[0]) + struct.pack('h', x[1]) for x in poiList])
+        returnBytes = ""
+        for x in poiList:
+            try:
+                returnBytes+= struct.pack("H", x[0]) + struct.pack('h', x[1])
+            except Exception as e:
+                print x
+                i = poiList.index(x)
+                print i
+                print poiList[i-10:i+10]
+                poiList.pop(i)
+
+
+        return "FRAME" + ''.join([struct.pack('H', x[0]) + struct.pack('h', x[1])  for x in poiList])
 
 
 def writeWavFromSignedInts(outFilename, tupleOfInts):
