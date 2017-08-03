@@ -28,5 +28,13 @@ Basing a lot of the design off of [libFLAC](https://xiph.org/flac/api/index.html
 look into pyaudio (requires port audio)
 [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/)
 
+**Things that might be important for estimating functions**
+- x intersects
+- inflection points
+- node max/min amplitudes
+
+A very naive approach would be to have a table of these points of interest and lerping between them.
+This would definitely be lossy.
+
 ## Version:
 **0.1.0**
