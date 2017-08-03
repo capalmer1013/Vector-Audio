@@ -7,6 +7,7 @@ import logging
 import wave
 import sys
 import struct
+import operator
 
 
 class File(object):
@@ -98,7 +99,7 @@ class State(object):
     # States begin here ----------------------------------------------------------
 
     def file_type(self, next_input):
-        self.bytesOut += "VAC"
+        self.bytesOut += "VAClerp"
         return self.INIT_METADATA
 
     def init_metadata(self, next_input):
@@ -130,10 +131,86 @@ class State(object):
 
     def find_best_fit(self, listOfSamples):
         """
-        current test:
-            just returns 2byte signed ints
+        New approach:
+            find and store points of interest
+            - x intersect
+            - nodemin
+            - nodemax
+            - inflectionpoints
+        format:
+            for POIs (might not need to be in order. since the whole frame is computed at the same time)
+            - 2 bytes unsigned int x (sample index) this makes the max framesize 65k
+            - 2 bytes signed int y (sample amplitude)
         """
-        return "FRAME" + ''.join([struct.pack('h', x) for x in listOfSamples])
+        def findPOIs(listOfSamples):
+            # listOfSamples: int -> [(x: int, y: int)]
+            lastSample = None
+            POIlist = []
+            x = -1
+
+            # get the x intercepts -----------------------------------------
+            for sample in listOfSamples:
+                x += 1
+                if lastSample is None:
+                    lastSample = sample
+                    continue
+
+                if lastSample <= 0 and sample > 0:
+                    POIlist.append((x, lastSample))
+            
+            # get the node min and max --------------------------------------
+            minmaxList = []
+            nodesList = []
+            tmp = []
+            for each in POIlist:
+                if len(tmp) < 2:
+                    tmp.append(each[0])
+                
+                tmp.append(each[0])
+
+                if len(tmp) > 2:
+                    tmp.pop(0)
+                
+                nodesList.append(tuple(tmp))
+
+            for poi in nodesList:
+                try:
+                    index, value = max(enumerate(listOfSamples[poi[0]:poi[1]]), key=operator.itemgetter(1))
+                except ValueError:
+                    # max value of empty list
+                    index = len(listOfSamples)-1
+                    value = listOfSamples[index]
+
+                except Exception as e:
+                    print "listOfSamples:", listOfSamples
+                    print "poi", poi
+                    raise e
+
+                minmaxList.append((index+poi[0], value))
+
+                try:
+                    index, value = min(enumerate(listOfSamples[poi[0]:poi[1]]), key=operator.itemgetter(1))
+                except ValueError:
+                    # min value of empty list
+                    index = len(listOfSamples)-1
+                    value = listOfSamples[index]
+
+                except Exception as e:
+                    print "listOfSamples:", listOfSamples
+                    print "poi", poi
+                    raise e
+
+                minmaxList.append((index+poi[0], value))
+
+            POIlist.extend(minmaxList)
+
+            # todo figure out how to find inflection points
+            return POIlist
+
+
+        
+        poiList = findPOIs(listOfSamples)
+        return "FRAME" + ''.join([struct.pack('h', x[0]) + struct.pack('h', x[1]) for x in poiList])
 
 
 def writeWavFromSignedInts(outFilename, tupleOfInts):

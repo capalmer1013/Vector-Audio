@@ -36,5 +36,7 @@ look into pyaudio (requires port audio)
 A very naive approach would be to have a table of these points of interest and lerping between them.
 This would definitely be lossy.
 
+These could be different variations with different filetype names like VAClerp
+
 ## Version:
 **0.1.0**
