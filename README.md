@@ -27,6 +27,11 @@ Basing a lot of the design off of [libFLAC](https://xiph.org/flac/api/index.html
 ## Notes:
 look into pyaudio (requires port audio)
 [PyAudio](https://people.csail.mit.edu/hubert/pyaudio/)
+possible algorithm to try for finding best fit function
+- start with lowest fundamental for frame (1 cycle or 1/2 cycle)
+- hill climb to offset with lowest error
+- adjust amplitude
+- proceed to next harmonic (or some other method of choosing pitches) (something with avg frequency, start with lowest harmonic)
 
 **Things that might be important for estimating functions**
 - x intersects
